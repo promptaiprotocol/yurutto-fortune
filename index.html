@@ -1,0 +1,683 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f7efe7" />
+  <meta name="description" content="毎日をちょっと楽しむ、やさしい占いWebアプリ。今日の運勢、1枚引き、3択、YES/NO、誕生日占い。" />
+  <title>ゆるっと占い 🔮</title>
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+  <style>
+    :root {
+      --bg: #fbf4ec;
+      --paper: rgba(255, 253, 250, 0.92);
+      --paper-strong: #fffdf9;
+      --ink: #4d4350;
+      --muted: #7f7382;
+      --lavender: #dcd2f4;
+      --lavender-strong: #bca9e3;
+      --pink: #f2d3da;
+      --pink-strong: #ddaebc;
+      --mint: #d8eadf;
+      --blue: #d9e8f2;
+      --yellow: #f6e8b8;
+      --peach: #f4d8c8;
+      --line: rgba(96, 76, 101, 0.11);
+      --shadow: 0 18px 45px rgba(105, 79, 98, 0.10);
+      --radius-xl: 30px;
+      --radius-lg: 22px;
+      --radius-md: 16px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 12% 12%, rgba(220,210,244,.52), transparent 27%),
+        radial-gradient(circle at 85% 18%, rgba(242,211,218,.50), transparent 28%),
+        radial-gradient(circle at 65% 80%, rgba(216,234,223,.45), transparent 30%),
+        var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", "Meiryo", system-ui, sans-serif;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    button, input { font: inherit; }
+    button { -webkit-tap-highlight-color: transparent; }
+
+    .stars {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .stars span {
+      position: absolute;
+      opacity: .18;
+      font-size: clamp(18px, 3vw, 34px);
+      animation: floaty 8s ease-in-out infinite;
+    }
+    .stars span:nth-child(1){left:7%;top:9%;animation-delay:-2s}
+    .stars span:nth-child(2){right:9%;top:12%;animation-delay:-5s}
+    .stars span:nth-child(3){left:4%;top:54%;animation-delay:-3s}
+    .stars span:nth-child(4){right:6%;top:63%;animation-delay:-7s}
+    .stars span:nth-child(5){left:18%;bottom:7%;animation-delay:-4s}
+    .stars span:nth-child(6){right:20%;bottom:8%;animation-delay:-1s}
+
+    @keyframes floaty {
+      0%,100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-12px) rotate(6deg); }
+    }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      width: min(980px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 28px 0 calc(46px + env(safe-area-inset-bottom));
+    }
+
+    header {
+      text-align: center;
+      padding: 22px 14px 18px;
+    }
+    .brand-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.55);
+      backdrop-filter: blur(10px);
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 13px;
+      letter-spacing: .04em;
+    }
+    h1 {
+      margin: 13px 0 6px;
+      font-size: clamp(30px, 7vw, 52px);
+      line-height: 1.15;
+      letter-spacing: .03em;
+    }
+    .subtitle { margin: 0; color: var(--muted); font-size: 15px; }
+
+    .nav-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      margin: 12px 0 20px;
+    }
+    .nav-btn {
+      border: 0;
+      min-height: 76px;
+      padding: 12px 8px;
+      border-radius: 20px;
+      background: var(--paper);
+      box-shadow: 0 8px 22px rgba(96,76,101,.08);
+      color: var(--ink);
+      cursor: pointer;
+      transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+    }
+    .nav-btn:hover, .nav-btn:focus-visible { transform: translateY(-2px); box-shadow: var(--shadow); outline: none; }
+    .nav-btn[aria-selected="true"] { background: linear-gradient(135deg, #eee7fb, #f9e6ea); box-shadow: 0 12px 30px rgba(112,86,124,.14); }
+    .nav-icon { display: block; font-size: 26px; margin-bottom: 4px; }
+    .nav-label { display: block; font-weight: 700; font-size: 13px; }
+
+    .panel {
+      display: none;
+      background: var(--paper);
+      border: 1px solid rgba(255,255,255,.75);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius-xl);
+      padding: clamp(18px, 4vw, 30px);
+      backdrop-filter: blur(16px);
+      animation: panelIn .35s ease both;
+    }
+    .panel.active { display: block; }
+    @keyframes panelIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+
+    .panel-title { text-align: center; margin: 0 0 4px; font-size: clamp(24px, 5vw, 34px); }
+    .panel-lead { text-align: center; margin: 0 auto 22px; color: var(--muted); max-width: 620px; }
+
+    .primary-btn, .soft-btn {
+      border: 0;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
+    }
+    .primary-btn {
+      padding: 14px 24px;
+      min-height: 52px;
+      color: #493d4c;
+      background: linear-gradient(135deg, #d9cbf1, #f0cfd8);
+      box-shadow: 0 10px 24px rgba(121,87,123,.18);
+      font-weight: 800;
+    }
+    .soft-btn {
+      padding: 11px 16px;
+      min-height: 44px;
+      color: var(--ink);
+      background: #fffaf7;
+      border: 1px solid var(--line);
+      font-weight: 700;
+    }
+    .primary-btn:hover, .soft-btn:hover, .primary-btn:focus-visible, .soft-btn:focus-visible { transform: translateY(-1px); filter: brightness(1.01); outline: none; }
+    .primary-btn:active, .soft-btn:active { transform: scale(.98); }
+
+    .daily-hero {
+      display: grid;
+      grid-template-columns: 150px 1fr;
+      gap: 20px;
+      align-items: center;
+      background: linear-gradient(135deg, rgba(220,210,244,.48), rgba(242,211,218,.43));
+      padding: 20px;
+      border-radius: 24px;
+      border: 1px solid rgba(255,255,255,.72);
+    }
+    .fortune-orb {
+      width: 126px;
+      height: 126px;
+      margin: auto;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 50px;
+      background: radial-gradient(circle at 35% 28%, #fff, #efe4f9 38%, #dfcae9 72%, #ccb2d8);
+      box-shadow: inset 0 0 30px rgba(255,255,255,.85), 0 15px 30px rgba(105,79,98,.16);
+      animation: glow 4s ease-in-out infinite;
+    }
+    @keyframes glow { 50% { box-shadow: inset 0 0 34px rgba(255,255,255,.95), 0 17px 38px rgba(105,79,98,.22); transform: translateY(-2px); } }
+    .today-date { color: var(--muted); font-size: 13px; margin-bottom: 5px; }
+    .today-headline { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+    .today-message { margin: 0; }
+
+    .fortune-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .fortune-chip {
+      background: rgba(255,255,255,.68);
+      border: 1px solid var(--line);
+      padding: 14px 10px;
+      border-radius: 18px;
+      text-align: center;
+    }
+    .fortune-chip strong { display:block; font-size: 13px; margin-bottom: 4px; }
+    .stars-rating { color: #9a7a34; letter-spacing: 1px; font-size: 14px; white-space: nowrap; }
+
+    .lucky-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .lucky-item { background:#fffaf7; border:1px solid var(--line); border-radius:18px; padding:13px 12px; text-align:center; }
+    .lucky-item span { display:block; color:var(--muted); font-size:12px; margin-bottom:3px; }
+    .lucky-item b { font-size:14px; }
+
+    .section-note {
+      margin: 16px 0 0;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(216,234,223,.42);
+      color: #5f6f64;
+      font-size: 13px;
+    }
+
+    .card-stage { text-align: center; padding: 8px 0 4px; }
+    .mystic-card {
+      width: min(280px, 75vw);
+      aspect-ratio: 2 / 3;
+      margin: 0 auto 18px;
+      perspective: 1000px;
+      cursor: pointer;
+    }
+    .card-inner { position: relative; width:100%; height:100%; transition: transform .75s cubic-bezier(.2,.75,.2,1); transform-style: preserve-3d; }
+    .mystic-card.revealed .card-inner { transform: rotateY(180deg); }
+    .card-face {
+      position:absolute;
+      inset:0;
+      border-radius: 28px;
+      backface-visibility:hidden;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+      border: 1px solid rgba(255,255,255,.78);
+      box-shadow: 0 22px 45px rgba(95,71,95,.16);
+    }
+    .card-back {
+      background:
+        radial-gradient(circle at 25% 20%, rgba(255,255,255,.44), transparent 14%),
+        radial-gradient(circle at 75% 78%, rgba(255,255,255,.3), transparent 18%),
+        linear-gradient(145deg, #c9b9e8, #e9c3d0);
+      color: white;
+      font-size: 48px;
+    }
+    .card-back small { font-size: 12px; margin-top: 10px; letter-spacing:.12em; opacity:.92; }
+    .card-front { transform: rotateY(180deg); background: linear-gradient(160deg, #fffdf9, #f7eff9); }
+    .card-emoji { font-size: 62px; margin-bottom: 4px; }
+    .card-title { font-size: 25px; font-weight: 800; margin-bottom: 4px; }
+    .card-keyword { color: #8a7892; font-size: 13px; letter-spacing:.08em; margin-bottom: 14px; }
+    .card-message { font-size: 15px; margin: 0; }
+    .card-action { margin-top: 12px; font-size: 13px; color:#74667a; background:#fff7fa; padding:8px 10px; border-radius:12px; }
+
+    .three-cards {
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin: 18px 0;
+    }
+    .choice-card {
+      border:0;
+      aspect-ratio: .72;
+      border-radius: 24px;
+      color:white;
+      background:
+        radial-gradient(circle at 30% 22%, rgba(255,255,255,.35), transparent 12%),
+        linear-gradient(145deg, #cabbe7, #e3bdcb);
+      box-shadow:0 15px 30px rgba(95,71,95,.14);
+      cursor:pointer;
+      font-weight:800;
+      font-size: clamp(18px, 4vw, 26px);
+      transition: transform .2s ease, filter .2s ease;
+    }
+    .choice-card:hover,.choice-card:focus-visible{transform:translateY(-4px) rotate(-1deg);outline:none;filter:brightness(1.02)}
+    .choice-card:disabled { cursor: default; opacity:.72; transform:none; }
+    .choice-card.selected { background:linear-gradient(145deg,#eee7fb,#f7dfe5); color:var(--ink); opacity:1; transform:translateY(-4px); }
+    .choice-result { min-height: 118px; background:#fffaf7; border:1px solid var(--line); border-radius:20px; padding:18px; text-align:center; }
+    .choice-result .big { font-size:34px; }
+
+    .yesno-box { text-align:center; padding:12px 0 0; }
+    .question-input, .birthday-input {
+      width: min(560px, 100%);
+      min-height: 50px;
+      border:1px solid var(--line);
+      background:#fffdfb;
+      color:var(--ink);
+      border-radius:16px;
+      padding:12px 14px;
+      outline:none;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.8);
+    }
+    .question-input:focus,.birthday-input:focus{border-color:#c9b9e8;box-shadow:0 0 0 4px rgba(201,185,232,.20)}
+    .yesno-orb {
+      width: 180px; height:180px; margin:20px auto; border-radius:50%; display:grid; place-items:center;
+      background:radial-gradient(circle at 35% 30%,#fff,#eee2f7 38%,#d8c0df 72%,#c4a9ce);
+      box-shadow:inset 0 0 35px rgba(255,255,255,.9),0 18px 40px rgba(95,71,95,.16);
+      padding:18px;
+    }
+    .yesno-answer { font-size:23px; font-weight:900; }
+    .yesno-sub { font-size:12px; color:#74677a; margin-top:6px; }
+    .shake { animation: shake .45s ease; }
+    @keyframes shake{20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
+
+    .birth-wrap { display:grid; grid-template-columns: 1fr 1fr; gap:16px; }
+    .birth-form, .birth-result { background:#fffaf7; border:1px solid var(--line); border-radius:22px; padding:18px; }
+    .birth-form label { display:block; font-weight:800; margin-bottom:8px; }
+    .privacy-mini { color:var(--muted); font-size:12px; margin:7px 0 16px; }
+    .birth-result.empty { display:grid; place-items:center; color:var(--muted); min-height:230px; text-align:center; }
+    .birth-result h3 { margin:0 0 8px; font-size:23px; }
+    .birth-tags { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin:12px 0; }
+    .birth-tag { padding:7px 10px; border-radius:999px; background:#f4ebf8; font-size:13px; }
+    .birth-message { background:white; border-radius:16px; padding:14px; }
+
+    .footer-card {
+      margin-top: 18px;
+      padding: 16px 18px;
+      background: rgba(255,255,255,.5);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .sparkle-burst { position:fixed; pointer-events:none; z-index:999; font-size:20px; animation:burst .9s ease-out forwards; }
+    @keyframes burst{0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}25%{opacity:1}100%{opacity:0;transform:translate(-50%,-90%) scale(1.35)}}
+
+    @media (max-width: 720px) {
+      .app { width:min(100% - 20px, 980px); padding-top:14px; }
+      .nav-grid { grid-template-columns: repeat(5, minmax(0,1fr)); gap:6px; }
+      .nav-btn { min-height:70px; padding:9px 4px; border-radius:16px; }
+      .nav-icon { font-size:22px; }
+      .nav-label { font-size:10px; }
+      .daily-hero { grid-template-columns:1fr; text-align:center; }
+      .fortune-grid { grid-template-columns: repeat(2,1fr); }
+      .lucky-grid { grid-template-columns:1fr; }
+      .three-cards { gap:8px; }
+      .choice-card { border-radius:18px; }
+      .birth-wrap { grid-template-columns:1fr; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; scroll-behavior:auto !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="stars" aria-hidden="true"><span>✦</span><span>☾</span><span>✧</span><span>⋆</span><span>✦</span><span>☽</span></div>
+  <main class="app">
+    <header>
+      <div class="brand-badge">ゆるっとシリーズ ✨</div>
+      <h1>🔮 ゆるっと占い</h1>
+      <p class="subtitle">答えを決めるためじゃなく、今日をちょっと楽しむための占い。</p>
+    </header>
+
+    <nav class="nav-grid" aria-label="占いメニュー" role="tablist">
+      <button class="nav-btn" role="tab" aria-selected="true" data-panel="daily"><span class="nav-icon">🌞</span><span class="nav-label">今日の運勢</span></button>
+      <button class="nav-btn" role="tab" aria-selected="false" data-panel="one"><span class="nav-icon">🎴</span><span class="nav-label">1枚引き</span></button>
+      <button class="nav-btn" role="tab" aria-selected="false" data-panel="three"><span class="nav-icon">🃏</span><span class="nav-label">3択占い</span></button>
+      <button class="nav-btn" role="tab" aria-selected="false" data-panel="yesno"><span class="nav-icon">✨</span><span class="nav-label">YES / NO</span></button>
+      <button class="nav-btn" role="tab" aria-selected="false" data-panel="birthday"><span class="nav-icon">🎂</span><span class="nav-label">誕生日占い</span></button>
+    </nav>
+
+    <section class="panel active" id="panel-daily" role="tabpanel">
+      <h2 class="panel-title">🌞 今日の運勢</h2>
+      <p class="panel-lead">今日のあなたに、ゆるっとひとこと。日付が変わるまで同じ結果だよ。</p>
+      <div id="dailyResult" aria-live="polite"></div>
+    </section>
+
+    <section class="panel" id="panel-one" role="tabpanel">
+      <h2 class="panel-title">🎴 ゆるっとカード 1枚引き</h2>
+      <p class="panel-lead">深く考えず、気になったタイミングでカードをタップしてね。</p>
+      <div class="card-stage">
+        <div class="mystic-card" id="oneCard" role="button" tabindex="0" aria-label="カードをめくる">
+          <div class="card-inner">
+            <div class="card-face card-back">✦<small>TAP TO OPEN</small></div>
+            <div class="card-face card-front" id="oneCardFront"></div>
+          </div>
+        </div>
+        <button class="soft-btn" id="drawAgainBtn" type="button">もう1枚引く ✨</button>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-three" role="tabpanel">
+      <h2 class="panel-title">🃏 3択占い</h2>
+      <p class="panel-lead">A・B・C。理由は考えず、最初に気になった1枚を選んでみて。</p>
+      <div class="three-cards" id="threeCards">
+        <button class="choice-card" data-choice="0" aria-label="Aのカード">A<br>✦</button>
+        <button class="choice-card" data-choice="1" aria-label="Bのカード">B<br>☾</button>
+        <button class="choice-card" data-choice="2" aria-label="Cのカード">C<br>✧</button>
+      </div>
+      <div class="choice-result" id="threeResult" aria-live="polite">直感で1枚選んでね 🌙</div>
+      <div style="text-align:center;margin-top:12px"><button class="soft-btn" id="resetThreeBtn" type="button">カードをまぜる</button></div>
+    </section>
+
+    <section class="panel" id="panel-yesno" role="tabpanel">
+      <h2 class="panel-title">✨ YES / NO</h2>
+      <p class="panel-lead">聞きたいことを心に浮かべて。入力はしてもしなくてもOK。</p>
+      <div class="yesno-box">
+        <input class="question-input" id="questionInput" maxlength="80" placeholder="例：今日は新しいことを始めてみる？（任意）" aria-label="占いたい質問" />
+        <div class="yesno-orb" id="yesnoOrb" aria-live="polite">
+          <div><div class="yesno-answer" id="yesnoAnswer">？</div><div class="yesno-sub" id="yesnoSub">気持ちを決めたら占ってね</div></div>
+        </div>
+        <button class="primary-btn" id="yesnoBtn" type="button">🔮 占う</button>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-birthday" role="tabpanel">
+      <h2 class="panel-title">🎂 誕生日占い</h2>
+      <p class="panel-lead">星座・数秘・テーマカラーから、あなたの“ゆるっと傾向”を見てみよう。</p>
+      <div class="birth-wrap">
+        <div class="birth-form">
+          <label for="birthdayInput">誕生日</label>
+          <input class="birthday-input" id="birthdayInput" type="date" aria-label="誕生日" />
+          <p class="privacy-mini">入力した誕生日は外部へ送信しません。このページ内で計算するだけです。</p>
+          <button class="primary-btn" id="birthdayBtn" type="button">占ってみる ✨</button>
+        </div>
+        <div class="birth-result empty" id="birthdayResult" aria-live="polite">🎂<br>誕生日を入れると結果がここに出るよ。</div>
+      </div>
+    </section>
+
+    <div class="footer-card">
+      🔮 この占いはエンタメとして楽しむためのものです。健康・お金・進路など大切な判断は、占いだけで決めず、信頼できる情報や専門家、自分の気持ちも大切にしてね。<br>
+      入力内容や占い結果は外部へ送信しません。
+    </div>
+  </main>
+
+<script>
+(() => {
+  'use strict';
+
+  const cards = [
+    {emoji:'🌞', title:'太陽', key:'素直・前進', msg:'今日は、少し大胆なくらいがちょうどよさそう。うれしいことは遠慮せず受け取って。', action:'小さな「やってみたい」を1つ実行。'},
+    {emoji:'🌙', title:'月', key:'感性・余白', msg:'答えを急がない方が見えてくるものがありそう。静かな時間が味方になる日。', action:'5分だけ何もしない時間をつくる。'},
+    {emoji:'🌱', title:'芽', key:'始まり・育てる', msg:'まだ小さくても、始めたことに意味がある日。完璧より最初の一歩を大切に。', action:'10分だけ着手してみる。'},
+    {emoji:'🌊', title:'波', key:'流れ・切り替え', msg:'予定通りにいかなくても大丈夫。流れに合わせて力の入れ方を変えるとうまくいきそう。', action:'ひとつだけ予定を軽くする。'},
+    {emoji:'🕊️', title:'鳥', key:'解放・知らせ', msg:'視点を少し高くすると、思ったより選択肢がありそう。連絡や会話にも小さなヒント。', action:'気になる人に短く連絡してみる。'},
+    {emoji:'🗝️', title:'鍵', key:'発見・突破口', msg:'難しく考えていたことに、意外と単純な入口が見つかりそう。基本に戻るのが近道。', action:'問題を一文で書き出す。'},
+    {emoji:'🌈', title:'虹', key:'回復・希望', msg:'少し気持ちが軽くなる兆し。全部解決しなくても、良い方向はちゃんと見えてきそう。', action:'今日よかったことを1つ残す。'},
+    {emoji:'☁️', title:'雲', key:'休息・保留', msg:'今日は決めないことも立派な選択。頭が晴れるまで、保留にしてよいこともありそう。', action:'急ぎでない決断を明日に回す。'},
+    {emoji:'🕯️', title:'灯り', key:'集中・安心', msg:'広く探すより、目の前のひとつに灯りを当てると進みやすい日。', action:'次の30分でやることを1つだけ決める。'},
+    {emoji:'🌷', title:'花', key:'魅力・喜び', msg:'好きなものを大事にすると魅力が出る日。人の基準より、自分の「いいな」を優先して。', action:'お気に入りを1つ選ぶ。'},
+    {emoji:'🍀', title:'四つ葉', key:'偶然・小さな幸運', msg:'予定外の小さなラッキーに気づけそう。余裕を少し残すと拾いやすい。', action:'いつもと違う道・順番を試す。'},
+    {emoji:'⭐', title:'星', key:'目標・希望', msg:'遠い目標より、今日できる1段を見れば十分。積み重ねが思った以上に効く日。', action:'目標を「今日やること」に変換する。'},
+    {emoji:'🪞', title:'鏡', key:'本音・見直し', msg:'周りより、自分が本当はどう感じているかを見る日。違和感は小さなサインかも。', action:'「本当はどうしたい？」と一度だけ聞く。'},
+    {emoji:'🎈', title:'風船', key:'軽さ・遊び心', msg:'真面目にやりすぎるより、少し遊びを入れるとうまくいきそう。肩の力を抜いて。', action:'作業に小さなごほうびを付ける。'},
+    {emoji:'🧭', title:'コンパス', key:'方向・基準', msg:'選択肢が多いほど、自分の基準をひとつ決めると迷いが減りそう。', action:'「一番大事な条件」を1つ決める。'},
+    {emoji:'🌿', title:'葉', key:'整える・回復', msg:'増やすより整える日。机、予定、気持ちのどれかを少し片づけると流れが変わりそう。', action:'不要なものを3つ手放す。'},
+    {emoji:'🫧', title:'泡', key:'手放す・軽やか', msg:'考えすぎていたことを少し手放せそう。全部背負わなくていい日。', action:'「今やらなくていいこと」を1つ決める。'},
+    {emoji:'🍵', title:'お茶', key:'ひと息・調和', msg:'急ぐほど遠回りになりそう。ひと息ついてから動くと判断が整いやすい。', action:'温かい飲み物で3分休憩。'},
+    {emoji:'📚', title:'本', key:'学び・深める', msg:'調べる・学ぶ・人に聞くが吉。知らなかったことが安心につながりそう。', action:'気になることを1つ調べる。'},
+    {emoji:'🚪', title:'扉', key:'選択・新展開', msg:'小さな選択が次の景色につながりそう。怖さがゼロになるのを待たなくて大丈夫。', action:'安全な範囲で新しい選択を1つ。'},
+    {emoji:'🧩', title:'ピース', key:'つながる・整理', msg:'バラバラだった情報がつながる日。焦らず並べてみると答えが見えやすい。', action:'メモを3項目に整理する。'},
+    {emoji:'🎐', title:'風鈴', key:'気配・涼やか', msg:'小さな変化に気づけそう。大きな答えより、ちょっとした違いを大切に。', action:'昨日と違うことを1つ見つける。'},
+    {emoji:'🧺', title:'かご', key:'受け取る・満たす', msg:'自分で全部作らなくても、助けや好意を受け取っていい日。', action:'ひとつ「ありがとう」で受け取る。'},
+    {emoji:'🪐', title:'惑星', key:'長期・巡り', msg:'すぐ結果が出ないことほど、ゆっくり進んでいるかも。長い目で見てOK。', action:'1週間後にもう一度見る予定を入れる。'}
+  ];
+
+  const dailyMessages = [
+    '今日は「少しだけ早め」が味方。余裕を5分つくると流れが整いそう。',
+    '人と比べるより、自分の昨日と比べると気持ちよく進める日。',
+    '迷ったら、いちばんシンプルな方へ。余計なものを減らすと答えが見えそう。',
+    '小さな親切が巡って戻ってきそう。まずは自分にもやさしく。',
+    '予定外にヒントあり。きっちり決めすぎず、少し余白を残してみて。',
+    '今日は言葉が大事。短くても、伝えることで空気が変わりそう。',
+    '集中力は波があってOK。乗れる時間に大事なことをひとつ進めよう。',
+    '「あとで」が増えたら、2分で終わることを1個だけ片づけると吉。',
+    '好きなものに触れると調子が戻りやすい日。小さなごほうびを忘れずに。',
+    'ひとつ手放すと、ひとつ入ってくる日。予定でも物でも、軽くしてみて。',
+    '今日は準備が効く日。始める前の3分が、その後をラクにしてくれそう。',
+    '誰かの正解より、自分が納得できる選び方を。静かな本音がヒント。'
+  ];
+
+  const luckyColors = ['ミントグリーン','ラベンダー','くすみピンク','クリームイエロー','ペールブルー','アイボリー','アプリコット','セージグリーン','モーヴ','コーラル'];
+  const luckyFoods = ['プリン','おにぎり','たまご料理','ヨーグルト','カレー','うどん','チョコレート','スープ','りんご','サンドイッチ','抹茶のお菓子','パンケーキ'];
+  const yesNoAnswers = [
+    ['かなりYES！ ✨','勢いを少し借りてもよさそう。'],
+    ['YES 🌷','無理のない範囲なら前向き。'],
+    ['たぶんYES 🌱','小さく試して様子を見るのが◎。'],
+    ['今は待って 🌙','急いで決めなくても大丈夫。'],
+    ['もう一度考えて 🌿','条件をひとつ整理すると見えやすそう。'],
+    ['今日はNO ☁️','別のタイミングや方法もありそう。'],
+    ['半々 🫧','気持ちより条件を確認してみて。'],
+    ['YES、でもゆっくり 🍵','進むなら余裕を残して。']
+  ];
+
+  const zodiac = [
+    ['山羊座','♑',12,22,1,19,'着実さと責任感。積み上げる力が魅力。'],
+    ['水瓶座','♒',1,20,2,18,'独自の視点と自由さ。新しい発想が魅力。'],
+    ['魚座','♓',2,19,3,20,'感受性と共感力。やわらかな直感が魅力。'],
+    ['牡羊座','♈',3,21,4,19,'スタートの速さと行動力。まず動けるのが魅力。'],
+    ['牡牛座','♉',4,20,5,20,'安定感と五感の豊かさ。好きなものを大切にできる。'],
+    ['双子座','♊',5,21,6,21,'好奇心と軽やかさ。情報をつなぐのが得意。'],
+    ['蟹座','♋',6,22,7,22,'思いやりと守る力。安心できる場をつくれる。'],
+    ['獅子座','♌',7,23,8,22,'表現力とあたたかさ。周りを明るくする存在感。'],
+    ['乙女座','♍',8,23,9,22,'丁寧さと観察力。整えることで力を発揮。'],
+    ['天秤座','♎',9,23,10,23,'バランス感覚と調和。心地よい落としどころを見つける。'],
+    ['蠍座','♏',10,24,11,22,'集中力と深さ。大切なものに強く向き合える。'],
+    ['射手座','♐',11,23,12,21,'探究心と前向きさ。知らない世界へ踏み出せる。']
+  ];
+
+  const numerologyText = {
+    1:'自分で道をつくるタイプ。小さくても「自分で決める」と力が出やすい。',
+    2:'人との調和が力になるタイプ。急がず、タイミングを読むのが得意。',
+    3:'表現と楽しさがエネルギー。好きなことを言葉や形にすると伸びやすい。',
+    4:'コツコツ型。仕組みや習慣をつくると安心して力を発揮できる。',
+    5:'変化と好奇心のタイプ。新鮮さがあるほど行動力が出やすい。',
+    6:'支える力が強いタイプ。人や場所を心地よく整えることが得意。',
+    7:'深く考える探究タイプ。一人でじっくり考える時間が大切。',
+    8:'現実化の力を持つタイプ。目標を数字や期限にすると前進しやすい。',
+    9:'広い視点と包容力のタイプ。意味や物語を感じることが原動力。',
+    11:'ひらめきと感受性が強いタイプ。直感を現実の言葉にすると活きる。',
+    22:'大きな構想を形にするタイプ。理想を小さな工程に分けると強い。',
+    33:'やさしさと表現力のタイプ。無理なく人を明るくする魅力がある。'
+  };
+
+  function hashString(str){
+    let h = 2166136261;
+    for(let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return h >>> 0;
+  }
+  function mulberry32(a){
+    return function(){ a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  }
+  function pick(arr, rng=Math.random){ return arr[Math.floor(rng()*arr.length)]; }
+  function escapeHtml(s){ return String(s).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+  function localDateKey(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+  function getClientSeed(){
+    let seed = localStorage.getItem('yurutto-fortune-seed');
+    if(!seed){ seed = Math.random().toString(36).slice(2)+Date.now().toString(36); localStorage.setItem('yurutto-fortune-seed',seed); }
+    return seed;
+  }
+  function stars(n){ return '★'.repeat(n) + '☆'.repeat(5-n); }
+  function formatToday(){ return new Intl.DateTimeFormat('ja-JP',{year:'numeric',month:'long',day:'numeric',weekday:'short'}).format(new Date()); }
+
+  const navButtons = [...document.querySelectorAll('.nav-btn')];
+  navButtons.forEach(btn => btn.addEventListener('click', () => {
+    navButtons.forEach(b => b.setAttribute('aria-selected','false'));
+    btn.setAttribute('aria-selected','true');
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById(`panel-${btn.dataset.panel}`).classList.add('active');
+    window.scrollTo({top:0,behavior:'smooth'});
+  }));
+
+  function renderDaily(){
+    const rng = mulberry32(hashString(localDateKey()+'|'+getClientSeed()));
+    const icon = pick(['🌞','🌷','🌿','🌈','⭐','🕊️'],rng);
+    const headline = pick(['ゆっくり整う日','小さな一歩が効く日','余白が味方の日','言葉がつながる日','好きが力になる日','シンプルが吉の日'],rng);
+    const msg = pick(dailyMessages,rng);
+    const ratings = {
+      '💕 恋愛運': 1+Math.floor(rng()*5),
+      '💼 仕事・勉強運':1+Math.floor(rng()*5),
+      '💰 金運':1+Math.floor(rng()*5),
+      '🌿 コンディション':1+Math.floor(rng()*5)
+    };
+    const luckyColor=pick(luckyColors,rng), luckyFood=pick(luckyFoods,rng), luckyNumber=1+Math.floor(rng()*9);
+    document.getElementById('dailyResult').innerHTML = `
+      <div class="daily-hero">
+        <div class="fortune-orb">${icon}</div>
+        <div><div class="today-date">${formatToday()}</div><div class="today-headline">${headline}</div><p class="today-message">${msg}</p></div>
+      </div>
+      <div class="fortune-grid">${Object.entries(ratings).map(([k,v])=>`<div class="fortune-chip"><strong>${k}</strong><span class="stars-rating" aria-label="5段階中${v}">${stars(v)}</span></div>`).join('')}</div>
+      <div class="lucky-grid">
+        <div class="lucky-item"><span>🎨 ラッキーカラー</span><b>${luckyColor}</b></div>
+        <div class="lucky-item"><span>🍰 ラッキーフード</span><b>${luckyFood}</b></div>
+        <div class="lucky-item"><span>🔢 ラッキーナンバー</span><b>${luckyNumber}</b></div>
+      </div>
+      <div class="section-note">✨ 今日のひとこと：全部うまくやろうとしなくてOK。ひとつ気分よく終えたら、それで十分。</div>`;
+  }
+  renderDaily();
+
+  const oneCard = document.getElementById('oneCard');
+  const oneFront = document.getElementById('oneCardFront');
+  let currentOne = null;
+  function setOneCard(card){
+    currentOne = card;
+    oneFront.innerHTML = `<div class="card-emoji">${card.emoji}</div><div class="card-title">${card.title}</div><div class="card-keyword">${card.key}</div><p class="card-message">${card.msg}</p><div class="card-action">今日の小さなアクション：${card.action}</div>`;
+  }
+  function revealOne(){
+    if(!currentOne) setOneCard(pick(cards));
+    oneCard.classList.add('revealed');
+    sparkle(window.innerWidth/2, Math.min(window.innerHeight*.45, 360));
+  }
+  function resetOne(){ oneCard.classList.remove('revealed'); setTimeout(()=>setOneCard(pick(cards)),350); }
+  oneCard.addEventListener('click', revealOne);
+  oneCard.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();revealOne();} });
+  document.getElementById('drawAgainBtn').addEventListener('click', resetOne);
+  setOneCard(pick(cards));
+
+  let threeDeck=[];
+  function shuffleThree(){
+    const pool=[...cards];
+    threeDeck=[];
+    while(threeDeck.length<3){ threeDeck.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]); }
+    document.querySelectorAll('.choice-card').forEach(b=>{ b.disabled=false; b.classList.remove('selected'); });
+    document.getElementById('threeResult').innerHTML='直感で1枚選んでね 🌙';
+  }
+  function chooseThree(i, btn){
+    const c=threeDeck[i];
+    document.querySelectorAll('.choice-card').forEach(b=>b.disabled=true);
+    btn.classList.add('selected');
+    document.getElementById('threeResult').innerHTML=`<div class="big">${c.emoji}</div><strong>${c.title}</strong> <span style="color:#8a7892">— ${c.key}</span><br>${c.msg}<div style="margin-top:8px;color:#74667a;font-size:13px">${c.action}</div>`;
+    const r=btn.getBoundingClientRect(); sparkle(r.left+r.width/2,r.top+r.height/2);
+  }
+  document.querySelectorAll('.choice-card').forEach(b=>b.addEventListener('click',()=>chooseThree(Number(b.dataset.choice),b)));
+  document.getElementById('resetThreeBtn').addEventListener('click',shuffleThree);
+  shuffleThree();
+
+  document.getElementById('yesnoBtn').addEventListener('click',()=>{
+    const ans=pick(yesNoAnswers);
+    const q=document.getElementById('questionInput').value.trim();
+    document.getElementById('yesnoAnswer').textContent=ans[0];
+    document.getElementById('yesnoSub').textContent=q ? `${ans[1]}「${q.slice(0,24)}${q.length>24?'…':''}」` : ans[1];
+    const orb=document.getElementById('yesnoOrb'); orb.classList.remove('shake'); void orb.offsetWidth; orb.classList.add('shake');
+    const r=orb.getBoundingClientRect(); sparkle(r.left+r.width/2,r.top+r.height/2);
+  });
+
+  function getZodiac(month,day){
+    for(const z of zodiac){
+      const [name,sym,sm,sd,em,ed,desc]=z;
+      if(sm===em && month===sm && day>=sd && day<=ed) return {name,sym,desc};
+      if(sm!==em && ((month===sm&&day>=sd)||(month===em&&day<=ed))) return {name,sym,desc};
+    }
+    return {name:'山羊座',sym:'♑',desc:zodiac[0][6]};
+  }
+  function reduceNum(n){
+    while(n>9 && ![11,22,33].includes(n)) n=String(n).split('').reduce((a,b)=>a+Number(b),0);
+    return n;
+  }
+  function lifePath(y,m,d){ return reduceNum(String(y)+String(m).padStart(2,'0')+String(d).padStart(2,'0').split('').reduce? 0 : 0); }
+  function calcLifePath(y,m,d){
+    let n = `${y}${String(m).padStart(2,'0')}${String(d).padStart(2,'0')}`.split('').reduce((a,b)=>a+Number(b),0);
+    return reduceNum(n);
+  }
+  function themeFrom(y,m,d){
+    const arr=[['ラベンダー','直感を大切にすると整いやすい色。'],['ミント','気持ちを切り替えたい時に合う色。'],['くすみピンク','やさしさと自己肯定を思い出す色。'],['ペールブルー','考えを整理したい時に合う色。'],['アプリコット','行動のきっかけをくれる色。'],['アイボリー','余白とリセットをつくる色。']];
+    return arr[hashString(`${y}-${m}-${d}`)%arr.length];
+  }
+  document.getElementById('birthdayBtn').addEventListener('click',()=>{
+    const v=document.getElementById('birthdayInput').value;
+    const out=document.getElementById('birthdayResult');
+    if(!v){ out.className='birth-result'; out.innerHTML='誕生日を入力してね 🎂'; return; }
+    const [y,m,d]=v.split('-').map(Number);
+    const dt=new Date(y,m-1,d);
+    if(dt.getFullYear()!==y||dt.getMonth()!==m-1||dt.getDate()!==d){ out.className='birth-result'; out.innerHTML='日付をもう一度確認してね。'; return; }
+    const z=getZodiac(m,d), num=calcLifePath(y,m,d), th=themeFrom(y,m,d);
+    out.className='birth-result';
+    out.innerHTML=`<h3>${z.sym} ${z.name}</h3><div class="birth-tags"><span class="birth-tag">🔢 数秘 ${num}</span><span class="birth-tag">🎨 ${th[0]}</span></div><div class="birth-message"><strong>星座：</strong>${z.desc}<br><br><strong>数秘：</strong>${numerologyText[num]||numerologyText[reduceNum(num)]}<br><br><strong>テーマカラー：</strong>${th[1]}<br><br>✨ <strong>ゆるっとメッセージ：</strong>自分の得意なペースを使うほど、無理なく魅力が出やすそう。</div>`;
+    sparkle(window.innerWidth*.72,Math.min(window.innerHeight*.62,500));
+  });
+
+  function sparkle(x,y){
+    if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    ['✨','✦','⋆'].forEach((s,i)=>{
+      const el=document.createElement('div'); el.className='sparkle-burst'; el.textContent=s; el.style.left=(x+(i-1)*26)+'px'; el.style.top=(y+(i%2)*10)+'px'; el.style.animationDelay=(i*.06)+'s'; document.body.appendChild(el); setTimeout(()=>el.remove(),1000);
+    });
+  }
+
+  if('serviceWorker' in navigator){ window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{})); }
+})();
+</script>
+</body>
+</html>

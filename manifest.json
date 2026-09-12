@@ -1,0 +1,13 @@
+{
+  "name": "ゆるっと占い",
+  "short_name": "ゆるっと占い",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fbf4ec",
+  "theme_color": "#f7efe7",
+  "description": "今日の運勢、1枚引き、3択、YES/NO、誕生日占いを楽しめるやさしいWeb占い。",
+  "icons": [
+    {"src":"./icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+  ]
+}
