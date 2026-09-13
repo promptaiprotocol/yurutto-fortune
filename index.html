@@ -363,6 +363,35 @@
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; scroll-behavior:auto !important; }
     }
+  
+
+    /* iPhone Safari: date input overflow fix */
+    input[type="date"] {
+      box-sizing: border-box;
+      inline-size: 100%;
+      width: 100%;
+      min-inline-size: 0;
+      min-width: 0;
+      max-inline-size: 100%;
+      max-width: 100%;
+      display: block;
+    }
+    input[type="date"]::-webkit-date-and-time-value {
+      min-width: 0;
+      text-align: left;
+    }
+    input[type="date"]::-webkit-datetime-edit {
+      min-width: 0;
+      padding: 0;
+    }
+
+    .birth-wrap, .birth-form, .birth-result { min-width: 0; }
+    .birthday-input {
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+    }
+
   </style>
 </head>
 <body>
