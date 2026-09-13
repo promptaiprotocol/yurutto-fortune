@@ -1,4 +1,4 @@
-const CACHE = 'yurutto-fortune-v3';
+const CACHE = 'yurutto-fortune-v4';
 const ASSETS = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png", "./favicon-32.png"];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(()=>self.skipWaiting()));
